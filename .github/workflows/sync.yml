@@ -34,6 +34,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The checkout gains an `upstream` remote, and gh would otherwise resolve
+      # bare `gh release`/`gh pr` calls against it. Explicit --repo flags (used
+      # for the upstream lookups below) still take precedence over this.
+      GH_REPO: ${{ github.repository }}
 
     steps:
       - uses: actions/checkout@v4
