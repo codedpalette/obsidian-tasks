@@ -402,11 +402,11 @@ export class Task extends ListItem {
             cancelledDate: newCancelledDate,
         });
 
-        const newStatusIsNotDone = !newStatus.isCompleted();
-        const oldStatusWasDone = this.status.isCompleted();
+        const newStatusDoesNotEndTask = !newStatus.isCompleted() && !newStatus.isCancelled();
+        const oldStatusAlreadyEndedTask = this.status.isCompleted() || this.status.isCancelled();
         const noRecurrenceRule = this.recurrence === null;
 
-        const noNewRecurrence = newStatusIsNotDone || oldStatusWasDone || noRecurrenceRule;
+        const noNewRecurrence = newStatusDoesNotEndTask || oldStatusAlreadyEndedTask || noRecurrenceRule;
         if (noNewRecurrence) {
             return [toggledTask];
         }

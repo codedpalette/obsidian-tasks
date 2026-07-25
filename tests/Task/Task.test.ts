@@ -1479,10 +1479,38 @@ describe('handle new status', () => {
             const newTasks = cancelledTask.handleNewStatus(Status.DONE);
 
             // Assert
+            // The next occurrence was already created when the task was cancelled,
+            // so completing the cancelled task must not create a second one.
+            expect(newTasks).toMatchMarkdownLines(['- [x] Stuff 🔁 every day 📅 2023-05-15 ✅ 2023-06-26']);
+        });
+
+        it('should create the next occurrence when cancelling a recurring task', () => {
+            // Arrange
+            const recurringTask = fromLine({
+                line: '- [ ] Stuff 🔁 every day 📅 2023-05-15',
+            });
+
+            // Act
+            const newTasks = recurringTask.handleNewStatus(Status.CANCELLED);
+
+            // Assert
             expect(newTasks).toMatchMarkdownLines([
                 '- [ ] Stuff 🔁 every day 📅 2023-05-16',
-                '- [x] Stuff 🔁 every day 📅 2023-05-15 ✅ 2023-06-26',
+                '- [-] Stuff 🔁 every day 📅 2023-05-15 ❌ 2023-06-26',
             ]);
+        });
+
+        it('should not create a further occurrence when cancelling an already-completed recurring task', () => {
+            // Arrange
+            const doneTask = fromLine({
+                line: '- [x] Stuff 🔁 every day 📅 2023-05-15 ✅ 2023-05-16',
+            });
+
+            // Act
+            const newTasks = doneTask.handleNewStatus(Status.CANCELLED);
+
+            // Assert
+            expect(newTasks).toMatchMarkdownLines(['- [-] Stuff 🔁 every day 📅 2023-05-15 ❌ 2023-06-26']);
         });
     });
 });
