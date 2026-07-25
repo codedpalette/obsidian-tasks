@@ -23,18 +23,18 @@ export function shouldShowPostponeButton(task: Task) {
 }
 
 /**
- * Gets a {@link HappensDate} field from a {@link Task} with the following priority: due > scheduled > start.
+ * Gets a {@link HappensDate} field from a {@link Task} with the following priority: scheduled > due > start.
  * If the task has no happens field {@link HappensDate}, null is returned.
  *
  * @param task
  */
 export function getDateFieldToPostpone(task: Task): HappensDate | null {
-    if (task.dueDate) {
-        return 'dueDate';
-    }
-
     if (task.scheduledDate) {
         return 'scheduledDate';
+    }
+
+    if (task.dueDate) {
+        return 'dueDate';
     }
 
     if (task.startDate) {
