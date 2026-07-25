@@ -82,8 +82,18 @@ describe('postpone - date field choice', () => {
         checkPostponeField(taskBuilder, 'startDate');
     });
 
-    it('should postpone due date in preference to start and scheduled dates', () => {
+    it('should postpone scheduled date in preference to due and start dates', () => {
         const taskBuilder = new TaskBuilder().dueDate(date).scheduledDate(date).startDate(date);
+        checkPostponeField(taskBuilder, 'scheduledDate');
+    });
+
+    it('should postpone scheduled date in preference to due date', () => {
+        const taskBuilder = new TaskBuilder().dueDate(date).scheduledDate(date);
+        checkPostponeField(taskBuilder, 'scheduledDate');
+    });
+
+    it('should postpone due date in preference to start date', () => {
+        const taskBuilder = new TaskBuilder().dueDate(date).startDate(date);
         checkPostponeField(taskBuilder, 'dueDate');
     });
 
