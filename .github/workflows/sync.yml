@@ -1,0 +1,173 @@
+name: Sync upstream and release
+
+# Keeps `main` pinned to the newest upstream release, merges it into `dev`,
+# and publishes a BRAT-installable release built from the result.
+#
+# Conflicts are parked in a pull request rather than failing the run, so a
+# known-and-tracked conflict does not email every morning. Build or test
+# failures DO fail the run: those mean the patch stopped working.
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Build and release even if nothing changed
+        type: boolean
+        default: false
+      version:
+        description: 'Version to publish (default: derived from upstream)'
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  UPSTREAM: obsidian-tasks-group/obsidian-tasks
+  PLUGIN_NAME: Tasks (patched)
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Configure git and fetch upstream
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git remote add upstream "https://github.com/$UPSTREAM.git"
+          git fetch upstream --tags --force
+          git fetch origin --tags --force
+
+      - name: Fast-forward main to the latest upstream release
+        id: upstream
+        run: |
+          tag=$(gh release view --repo "$UPSTREAM" --json tagName -q .tagName)
+          sha=$(git rev-parse "refs/tags/$tag^{commit}")
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "::notice::Latest upstream release is $tag."
+          git branch -f main "$sha"
+          git push origin "$sha:refs/heads/main"
+
+      - name: Merge main into dev
+        id: merge
+        run: |
+          git checkout dev
+          if git merge --no-edit main; then
+            echo 'clean=true' >> "$GITHUB_OUTPUT"
+          else
+            git merge --abort
+            echo 'clean=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      # Deliberately exits 0: a conflict we already know about should not send
+      # a failure email every day. The open PR is the persistent reminder.
+      - name: Park conflicts in a pull request
+        if: steps.merge.outputs.clean == 'false'
+        run: |
+          tag='${{ steps.upstream.outputs.tag }}'
+          pr=$(gh pr list --base dev --head main --state open --json number -q '.[0].number')
+          if [ -z "$pr" ]; then
+            body=$(printf '%s\n\n%s\n%s\n%s\n\n%s\n' \
+              'The automatic sync hit conflicts. Resolve locally:' \
+              '```' \
+              'git fetch origin && git checkout dev && git merge main' \
+              '```' \
+              'Releases stay paused until this lands.')
+            gh pr create --base dev --head main \
+              --title "Sync upstream $tag into dev" --body "$body"
+            echo "::warning::Upstream $tag conflicts with dev - opened a sync PR."
+          else
+            created=$(gh pr view "$pr" --json createdAt -q .createdAt)
+            age=$(( ( $(date +%s) - $(date -d "$created" +%s) ) / 86400 ))
+            echo "::notice::Upstream $tag still conflicts; PR #$pr has been open $age day(s)."
+            if [ "$age" -gt 0 ] && [ $((age % 7)) -eq 0 ]; then
+              gh pr comment "$pr" --body "Still conflicting after $age days; releases are paused."
+            fi
+          fi
+
+      - name: Decide whether to release
+        id: decide
+        if: steps.merge.outputs.clean == 'true'
+        run: |
+          last=$(gh release list --limit 1 --json tagName -q '.[0].tagName')
+          echo "last=$last" >> "$GITHUB_OUTPUT"
+          if [ -n "$last" ] && [ '${{ inputs.force }}' != 'true' ] &&
+             [ "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$last^{commit}")" ]; then
+            echo "::notice::dev is unchanged since release $last - nothing to do."
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      # The manifest is stamped in the working tree and never committed. Keeping
+      # `version` and `name` out of git is what stops upstream's own version
+      # bumps from conflicting with us on every single release.
+      - name: Stamp the manifest
+        id: stamp
+        if: steps.decide.outputs.run == 'true'
+        run: |
+          base=$(jq -r .version manifest.json)
+          # +100 on the major so Obsidian's community-plugin updater never sees
+          # the store release as newer than this build, and so never offers to
+          # overwrite it. Obsidian compares versions as dot-separated integers.
+          offset="$(( ${base%%.*} + 100 )).${base#*.}"
+          version='${{ inputs.version }}'
+          if [ -z "$version" ]; then
+            n=$(gh release list --limit 200 --json tagName -q \
+                  "[.[] | select(.tagName | startswith(\"$offset-preview.\"))] | length")
+            version="$offset-preview.$((n + 1))"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "::notice::Publishing $version (upstream $base)."
+          jq --arg v "$version" --arg n "$PLUGIN_NAME" '.version = $v | .name = $n' manifest.json > m.tmp
+          mv m.tmp manifest.json
+
+      - uses: actions/setup-node@v4
+        if: steps.decide.outputs.run == 'true'
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Build and verify
+        if: steps.decide.outputs.run == 'true'
+        run: |
+          yarn install --frozen-lockfile
+          yarn test
+          yarn run build
+
+      - name: Push dev and publish the release
+        if: steps.decide.outputs.run == 'true'
+        run: |
+          tag='${{ steps.upstream.outputs.tag }}'
+          last='${{ steps.decide.outputs.last }}'
+          version='${{ steps.stamp.outputs.version }}'
+
+          git push origin HEAD:dev
+
+          url=$(gh release view "$tag" --repo "$UPSTREAM" --json url -q .url)
+          name=$(gh release view "$tag" --repo "$UPSTREAM" --json name -q .name)
+          since="refs/tags/${last:-$tag}"
+          changes=$(git log --no-merges --reverse --format='- %s' "$since..HEAD")
+
+          notes=$(printf '%s\n\n%s\n\n%s\n%s\n' \
+            "Built from upstream [\`$tag\`]($url) with local patches." \
+            "**Upstream changelog:** [$name]($url)" \
+            '**In this build:**' \
+            "${changes:-- No local changes.}")
+
+          gh release create "$version" \
+            --target "$(git rev-parse HEAD)" \
+            --title "$version" \
+            --notes "$notes" \
+            main.js manifest.json styles.css
