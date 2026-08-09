@@ -820,3 +820,17 @@ describe('Buttons in the modal on mobile', () => {
         await expect(fireEvent.mouseDown(deleteButton)).resolves.toBe(false);
     });
 });
+
+describe('Focusing the Description field when the modal opens', () => {
+    // The field is focused on a short delay, so that the software keyboard cannot make
+    // the mobile WebView scroll a still-animating modal in order to reveal it.
+    //
+    // This also guards the delay itself: the modal can be closed before the timer runs,
+    // and Svelte clears `bind:this` on destroy, so focusing without a null check throws.
+    it('should focus the Description field', async () => {
+        const { container } = renderAndCheckModal(new TaskBuilder().build(), () => {});
+        const description = getAndCheckRenderedDescriptionElement(container);
+
+        await waitFor(() => expect(container.ownerDocument.activeElement).toBe(description));
+    });
+});

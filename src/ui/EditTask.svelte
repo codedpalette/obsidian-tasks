@@ -72,9 +72,16 @@
 
         mountComplete = true;
 
+        // On mobile the modal slides up from the bottom of the screen. Focusing the
+        // Description field before that is under way can leave it below the visible
+        // area, and the WebView then scrolls the modal content part-way down the form
+        // to reveal it once the software keyboard appears. Waiting a little longer
+        // before focusing avoids that in practice on iOS.
         setTimeout(() => {
-            descriptionInput.focus({ preventScroll: true });
-        }, 10);
+            // The modal may have been closed while we were waiting, in which case
+            // Svelte has already cleared this binding.
+            descriptionInput?.focus({ preventScroll: true });
+        }, 50);
     });
 
     const _onClose = () => {
