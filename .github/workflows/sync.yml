@@ -55,31 +55,27 @@ jobs:
           git fetch upstream --tags --force
           git fetch origin --tags --force
 
-      # `main` is a mirror. Nothing of ours is committed to it, so on any normal day
-      # upstream is simply ahead and a plain fast-forward is enough - no force needed.
+      # `main` is a mirror: nothing of ours belongs on it, so upstream is right by
+      # definition and resetting to it is always the correct resolution. On a normal
+      # day this is an ordinary fast-forward and the force changes nothing.
       #
-      # The awkward case is `main` holding commits upstream does not have, which in
-      # this repo means a mistake: an upstream-bound pull request merged into our own
-      # `main` instead of being sent on. Neither simple strategy handles that well. A
-      # plain push is rejected, and the workflow then fails every morning until someone
-      # investigates. A blind force resets `main` and discards the commits with a green
-      # tick. So do both safely - park whatever is unique to `main` on a rescue branch,
-      # then reset - which self-heals without ever losing work.
+      # Failing instead, on the theory that stray commits deserve attention, would
+      # halt the dev sync and the releases every morning over a branch that ships
+      # nothing - the same daily-email problem the conflict handling below exists to
+      # avoid. And nothing is really lost: anything that could reach `main` arrived on
+      # a pushed branch that still exists. So warn, and carry on.
       - name: Mirror main from upstream
         run: |
           upstream_sha=$(git rev-parse --short refs/remotes/upstream/main)
 
-          if git merge-base --is-ancestor refs/remotes/origin/main refs/remotes/upstream/main; then
-            git push origin refs/remotes/upstream/main:refs/heads/main
-            echo "::notice::main mirrors upstream/main ($upstream_sha)."
-          else
-            rescue="rescue/main-$(date -u +%Y%m%d-%H%M%S)"
-            git push origin "refs/remotes/origin/main:refs/heads/$rescue"
-            git push --force origin refs/remotes/upstream/main:refs/heads/main
-            echo "::warning::main held commits upstream does not have. They are saved on \`$rescue\`; main has been reset to upstream/main ($upstream_sha)."
-            git log --oneline refs/remotes/upstream/main..refs/remotes/origin/main | \
-              while read -r line; do echo "::warning::rescued: $line"; done
+          if ! git merge-base --is-ancestor refs/remotes/origin/main refs/remotes/upstream/main; then
+            echo "::warning::main held commits upstream does not have - resetting to upstream/main and dropping them from the branch."
+            git log --oneline refs/remotes/upstream/main..refs/remotes/origin/main |
+              while read -r line; do echo "::warning::dropped from main: $line"; done
           fi
+
+          git push --force origin refs/remotes/upstream/main:refs/heads/main
+          echo "::notice::main mirrors upstream/main ($upstream_sha)."
 
       - name: Look for a new upstream release
         id: upstream
