@@ -1,0 +1,131 @@
+name: Publish preview release
+
+# Builds `dev` and publishes a BRAT-installable release from it.
+#
+# Runs whenever `dev` moves - so merging a pull request into `dev` publishes a
+# release on its own, with no further action.
+#
+# `sync.yml` calls this workflow directly rather than relying on its own push to
+# `dev` to trigger it. Pushes made with GITHUB_TOKEN deliberately do not start new
+# workflow runs, so an upstream sync would otherwise land on `dev` and never be
+# published.
+
+on:
+  push:
+    branches: [dev]
+    # Nothing here ends up inside main.js, manifest.json or styles.css, so a change
+    # confined to these paths would publish a build identical to the last one. Only
+    # applies to this trigger: sync.yml calls the workflow directly, so an upstream
+    # release still publishes whatever it touched.
+    paths-ignore:
+      - '.github/**'
+      - 'docs/**'
+      - 'resources/**'
+      - '**/*.md'
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version to publish (default: derived from upstream)'
+        type: string
+        required: false
+        default: ''
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (default: derived from upstream)'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+env:
+  UPSTREAM: obsidian-tasks-group/obsidian-tasks
+  PLUGIN_NAME: Tasks (patched)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The checkout gains an `upstream` remote, and gh would otherwise resolve
+      # bare `gh release` calls against it. Explicit --repo flags still win.
+      GH_REPO: ${{ github.repository }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Work out the version to publish
+        id: stamp
+        run: |
+          last=$(gh release list --limit 1 --json tagName -q '.[0].tagName')
+          echo "last=$last" >> "$GITHUB_OUTPUT"
+
+          base=$(jq -r .version manifest.json)
+          # +100 on the major so Obsidian's community-plugin updater never sees the
+          # store release as newer than this build, and so never offers to overwrite
+          # it. Obsidian compares versions as dot-separated integers.
+          offset="$(( ${base%%.*} + 100 )).${base#*.}"
+
+          version='${{ inputs.version }}'
+          if [ -z "$version" ]; then
+            # Counting only the tags for THIS upstream version is what resets the
+            # preview counter automatically whenever an upstream release is merged.
+            n=$(gh release list --limit 200 --json tagName -q \
+                  "[.[] | select(.tagName | startswith(\"$offset-preview.\"))] | length")
+            version="$offset-preview.$((n + 1))"
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "::notice::Publishing $version (upstream $base)."
+
+      # The manifest is stamped in the working tree and never committed. Keeping
+      # `version` and `name` out of git is what stops upstream's own version bumps
+      # from conflicting with us on every single release.
+      - name: Stamp the manifest
+        run: |
+          jq --arg v '${{ steps.stamp.outputs.version }}' --arg n "$PLUGIN_NAME" \
+            '.version = $v | .name = $n' manifest.json > m.tmp
+          mv m.tmp manifest.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Build and verify
+        run: |
+          yarn install --frozen-lockfile
+          yarn test
+          yarn run build
+
+      - name: Publish the release
+        run: |
+          last='${{ steps.stamp.outputs.last }}'
+          version='${{ steps.stamp.outputs.version }}'
+
+          tag=$(gh release view --repo "$UPSTREAM" --json tagName -q .tagName)
+          url=$(gh release view "$tag" --repo "$UPSTREAM" --json url -q .url)
+          name=$(gh release view "$tag" --repo "$UPSTREAM" --json name -q .name)
+
+          if [ -n "$last" ] && git rev-parse -q --verify "refs/tags/$last" >/dev/null; then
+            changes=$(git log --no-merges --reverse --format='- %s' "refs/tags/$last..HEAD")
+          else
+            changes=''
+          fi
+
+          notes=$(printf '%s\n\n%s\n\n%s\n%s\n' \
+            "Built from upstream [\`$tag\`]($url) with local patches." \
+            "**Upstream changelog:** [$name]($url)" \
+            '**In this build:**' \
+            "${changes:-- No local changes.}")
+
+          gh release create "$version" \
+            --target "$(git rev-parse HEAD)" \
+            --title "$version" \
+            --notes "$notes" \
+            main.js manifest.json styles.css
