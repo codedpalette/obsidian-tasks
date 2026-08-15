@@ -13,6 +13,15 @@ name: Publish preview release
 on:
   push:
     branches: [dev]
+    # Nothing here ends up inside main.js, manifest.json or styles.css, so a change
+    # confined to these paths would publish a build identical to the last one. Only
+    # applies to this trigger: sync.yml calls the workflow directly, so an upstream
+    # release still publishes whatever it touched.
+    paths-ignore:
+      - '.github/**'
+      - 'docs/**'
+      - 'resources/**'
+      - '**/*.md'
   workflow_call:
     inputs:
       version:

@@ -49,17 +49,37 @@ jobs:
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git remote add upstream "https://github.com/$UPSTREAM.git"
+          # actions/checkout narrows the origin refspec to the branch it checked out,
+          # so widen it again: the mirror step below needs to see origin/main.
+          git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
           git fetch upstream --tags --force
           git fetch origin --tags --force
 
-      # Forced, because `main` is a mirror we never commit to, so whatever upstream
-      # says is right by definition. A non-forced push here fails permanently the
-      # moment the two diverge for any reason - including someone syncing `main` by
-      # hand to get an up-to-date base for an upstream pull request.
+      # `main` is a mirror. Nothing of ours is committed to it, so on any normal day
+      # upstream is simply ahead and a plain fast-forward is enough - no force needed.
+      #
+      # The awkward case is `main` holding commits upstream does not have, which in
+      # this repo means a mistake: an upstream-bound pull request merged into our own
+      # `main` instead of being sent on. Neither simple strategy handles that well. A
+      # plain push is rejected, and the workflow then fails every morning until someone
+      # investigates. A blind force resets `main` and discards the commits with a green
+      # tick. So do both safely - park whatever is unique to `main` on a rescue branch,
+      # then reset - which self-heals without ever losing work.
       - name: Mirror main from upstream
         run: |
-          git push --force origin refs/remotes/upstream/main:refs/heads/main
-          echo "::notice::main now mirrors upstream/main ($(git rev-parse --short upstream/main))."
+          upstream_sha=$(git rev-parse --short refs/remotes/upstream/main)
+
+          if git merge-base --is-ancestor refs/remotes/origin/main refs/remotes/upstream/main; then
+            git push origin refs/remotes/upstream/main:refs/heads/main
+            echo "::notice::main mirrors upstream/main ($upstream_sha)."
+          else
+            rescue="rescue/main-$(date -u +%Y%m%d-%H%M%S)"
+            git push origin "refs/remotes/origin/main:refs/heads/$rescue"
+            git push --force origin refs/remotes/upstream/main:refs/heads/main
+            echo "::warning::main held commits upstream does not have. They are saved on \`$rescue\`; main has been reset to upstream/main ($upstream_sha)."
+            git log --oneline refs/remotes/upstream/main..refs/remotes/origin/main | \
+              while read -r line; do echo "::warning::rescued: $line"; done
+          fi
 
       - name: Look for a new upstream release
         id: upstream
