@@ -9,7 +9,7 @@
     import DateEditor from './DateEditor.svelte';
     import Dependency from './Dependency.svelte';
     import { EditableTask } from './EditableTask';
-    import { labelContentWithAccessKey } from './EditTaskHelpers';
+    import { focusOnceClearOfKeyboard, labelContentWithAccessKey } from './EditTaskHelpers';
     import PriorityEditor from './PriorityEditor.svelte';
     import RecurrenceEditor from './RecurrenceEditor.svelte';
     import StatusEditor from './StatusEditor.svelte';
@@ -72,16 +72,9 @@
 
         mountComplete = true;
 
-        // On mobile the modal slides up from the bottom of the screen. Focusing the
-        // Description field before that is under way can leave it below the visible
-        // area, and the WebView then scrolls the modal content part-way down the form
-        // to reveal it once the software keyboard appears. Waiting a little longer
-        // before focusing avoids that in practice on iOS.
-        setTimeout(() => {
-            // The modal may have been closed while we were waiting, in which case
-            // Svelte has already cleared this binding.
-            descriptionInput?.focus({ preventScroll: true });
-        }, 50);
+        // Put the cursor in the Description field, ready to type. On a phone this has to wait for
+        // the modal to finish sliding up first, or the keyboard drags the form down with it
+        focusOnceClearOfKeyboard(descriptionInput);
     });
 
     const _onClose = () => {
