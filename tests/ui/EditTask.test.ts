@@ -822,11 +822,12 @@ describe('Buttons in the modal on mobile', () => {
 });
 
 describe('Focusing the Description field when the modal opens', () => {
-    // The field is focused on a short delay, so that the software keyboard cannot make
-    // the mobile WebView scroll a still-animating modal in order to reveal it.
+    // On a phone, focusing waits for the modal to slide far enough up that the software keyboard
+    // cannot make the WebView scroll the form to reach the field. That waiting is covered by the
+    // focusOnceClearOfKeyboard() tests in EditTaskHelpers.test.ts.
     //
-    // This also guards the delay itself: the modal can be closed before the timer runs,
-    // and Svelte clears `bind:this` on destroy, so focusing without a null check throws.
+    // Nothing is sliding here, and there is no modal to slide, so this checks the plain case: the
+    // field still ends up focused.
     it('should focus the Description field', async () => {
         const { container } = renderAndCheckModal(new TaskBuilder().build(), () => {});
         const description = getAndCheckRenderedDescriptionElement(container);
