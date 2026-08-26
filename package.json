@@ -1,6 +1,6 @@
 {
   "name": "obsidian-tasks",
-  "version": "8.3.0",
+  "version": "8.4.0",
   "description": "Task management for the Obsidian knowledge base",
   "main": "main.js",
   "engines": {
@@ -19,7 +19,7 @@
     "deploy:local": "node ./scripts/Test-TasksInLocalObsidian.mjs",
     "deploy:local:pwsh": "pwsh -ExecutionPolicy Unrestricted -NoProfile -File ./scripts/Test-TasksInLocalObsidian.ps1",
     "extract-i18n": "npx i18next-parser && node ./scripts/normalizeI18nLocales.mjs",
-    "circular-deps-text": "madge --circular --extensions ts ./src > circular-deps.txt",
+    "circular-deps-text": "node ./scripts/circular-deps-text.mjs > circular-deps.txt",
     "circular-deps-image": "madge --circular --extensions ts ./src --image circular-deps.png",
     "code-docs": "typedoc \"src/**/*\""
   },
@@ -52,7 +52,7 @@
     "esbuild-svelte": "^0.8.2",
     "eslint": "9.26.0",
     "eslint-config-prettier": "^8.8.0",
-    "eslint-plugin-obsidianmd": "^0.4.0",
+    "eslint-plugin-obsidianmd": "^0.4.1",
     "eslint-plugin-prettier": "^4.2.5",
     "eslint-plugin-svelte": "^3.19.0",
     "globals": "^13.0.0",
