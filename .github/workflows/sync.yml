@@ -39,10 +39,14 @@ jobs:
       GH_REPO: ${{ github.repository }}
 
     steps:
+      # Every push below can carry upstream changes to .github/workflows/, which
+      # GITHUB_TOKEN may not write. SYNC_TOKEN is a fine-grained PAT with Contents
+      # and Workflows write access to this repository only. `gh` keeps GITHUB_TOKEN.
       - uses: actions/checkout@v4
         with:
           ref: dev
           fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN }}
 
       - name: Configure git and fetch upstream
         run: |
@@ -90,11 +94,15 @@ jobs:
             echo 'new=true' >> "$GITHUB_OUTPUT"
           fi
 
+      # `[skip ci]` stops publish.yml's push trigger firing when dev is pushed below,
+      # because the `publish` job calls it explicitly. `--no-ff` guarantees that our
+      # merge commit, which carries the marker, is the head commit of the push.
       - name: Merge the release into dev
         id: merge
         if: steps.upstream.outputs.new == 'true'
         run: |
-          if git merge --no-edit "refs/tags/${{ steps.upstream.outputs.tag }}"; then
+          tag='${{ steps.upstream.outputs.tag }}'
+          if git merge --no-ff -m "Merge upstream release $tag [skip ci]" "refs/tags/$tag"; then
             echo 'merged=true' >> "$GITHUB_OUTPUT"
           else
             git merge --abort
@@ -151,8 +159,9 @@ jobs:
         if: steps.merge.outputs.merged == 'true'
         run: git push origin HEAD:dev
 
-  # Called explicitly: the push above uses GITHUB_TOKEN, which by design does not
-  # start a new workflow run, so publish.yml's own push trigger will not fire.
+  # Called explicitly rather than through publish.yml's push trigger, which the
+  # `[skip ci]` merge message suppresses: that trigger's paths-ignore would skip an
+  # upstream release that only touched docs, and this call publishes regardless.
   publish:
     needs: sync
     if: needs.sync.outputs.merged == 'true'

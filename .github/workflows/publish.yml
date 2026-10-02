@@ -6,9 +6,9 @@ name: Publish preview release
 # release on its own, with no further action.
 #
 # `sync.yml` calls this workflow directly rather than relying on its own push to
-# `dev` to trigger it. Pushes made with GITHUB_TOKEN deliberately do not start new
-# workflow runs, so an upstream sync would otherwise land on `dev` and never be
-# published.
+# `dev` to trigger it, so an upstream release publishes even when paths-ignore below
+# would skip it. Its merge commit says `[skip ci]`, so the push does not also
+# trigger a second run.
 
 on:
   push:
