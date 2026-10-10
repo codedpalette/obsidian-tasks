@@ -63,6 +63,10 @@ export const TASK_FORMATS = {
 
 export type TASK_FORMATS = typeof TASK_FORMATS; // For convenience to make some typing easier
 
+export type QuickSearchSettings = {
+    fuzzyMatching: boolean;
+};
+
 export interface Settings {
     presets: PresetsMap;
     globalQuery: string;
@@ -84,6 +88,7 @@ export interface Settings {
     searchResults: {
         taskCountLocation: 'top' | 'bottom';
     };
+    quickSearch: QuickSearchSettings;
 
     // The custom status states.
     statusSettings: StatusSettings;
@@ -129,6 +134,9 @@ const defaultSettings: Readonly<Settings> = {
     removeScheduledDateOnRecurrence: false,
     searchResults: {
         taskCountLocation: 'bottom',
+    },
+    quickSearch: {
+        fuzzyMatching: true,
     },
     statusSettings: new StatusSettings(),
     isShownInEditModal: defaultEditModalShowSettings,
