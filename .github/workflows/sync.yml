@@ -129,8 +129,11 @@ jobs:
               "git fetch origin && git checkout dev && git merge $branch" \
               '```' \
               'Releases stay paused until this lands.')
+            # Assigned to the owner because the run itself stays green: without it
+            # nothing notifies anyone, as a new PR emails only the repo's watchers.
             gh pr create --base dev --head "$branch" \
-              --title "Sync upstream $tag into dev" --body "$body"
+              --title "Sync upstream $tag into dev" --body "$body" \
+              --assignee "$GITHUB_REPOSITORY_OWNER"
             echo "::warning::Upstream $tag conflicts with dev - opened a sync PR."
           else
             created=$(gh pr view "$pr" --json createdAt -q .createdAt)
