@@ -1,4 +1,4 @@
-name: Publish preview release
+name: Publish patched release
 
 # Builds `dev` and publishes a BRAT-installable release from it.
 #
@@ -43,6 +43,10 @@ permissions:
 env:
   UPSTREAM: obsidian-tasks-group/obsidian-tasks
   PLUGIN_NAME: Tasks (patched)
+  # Our own id, so Obsidian's community-plugin updater never matches this build
+  # against the store's Tasks and never offers to overwrite it. BRAT installs the
+  # release into a folder named after this id.
+  PLUGIN_ID: obsidian-tasks-plugin-patched
 
 jobs:
   publish:
@@ -66,30 +70,26 @@ jobs:
           echo "last=$last" >> "$GITHUB_OUTPUT"
 
           base=$(jq -r .version manifest.json)
-          # +100 on the major so Obsidian's community-plugin updater never sees the
-          # store release as newer than this build, and so never offers to overwrite
-          # it. Obsidian compares versions as dot-separated integers.
-          offset="$(( ${base%%.*} + 100 )).${base#*.}"
 
           version='${{ inputs.version }}'
           if [ -z "$version" ]; then
             # Counting only the tags for THIS upstream version is what resets the
-            # preview counter automatically whenever an upstream release is merged.
+            # patched counter automatically whenever an upstream release is merged.
             n=$(gh release list --limit 200 --json tagName -q \
-                  "[.[] | select(.tagName | startswith(\"$offset-preview.\"))] | length")
-            version="$offset-preview.$((n + 1))"
+                  "[.[] | select(.tagName | startswith(\"$base-patched.\"))] | length")
+            version="$base-patched.$((n + 1))"
           fi
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "::notice::Publishing $version (upstream $base)."
 
       # The manifest is stamped in the working tree and never committed. Keeping
-      # `version` and `name` out of git is what stops upstream's own version bumps
+      # `version`, `name` and `id` out of git is what stops upstream's own version bumps
       # from conflicting with us on every single release.
       - name: Stamp the manifest
         run: |
-          jq --arg v '${{ steps.stamp.outputs.version }}' --arg n "$PLUGIN_NAME" \
-            '.version = $v | .name = $n' manifest.json > m.tmp
+          jq --arg v '${{ steps.stamp.outputs.version }}' --arg n "$PLUGIN_NAME" --arg i "$PLUGIN_ID" \
+            '.version = $v | .name = $n | .id = $i' manifest.json > m.tmp
           mv m.tmp manifest.json
 
       - uses: actions/setup-node@v4
