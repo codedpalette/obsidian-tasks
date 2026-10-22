@@ -128,7 +128,6 @@
   },
   "settings": {
     "autoSuggest": {
-      "heading": "Suggestion automatique",
       "maxSuggestions": {
         "description": "Le nombre de suggestions affichées lorsque le menu de suggestion automatique apparaît (y compris l'option \"⏎\").",
         "name": "Nombre maximum de suggestions à afficher"
@@ -142,7 +141,6 @@
         "name": "Auto-suggestion du contenu des tâches"
       }
     },
-    "changeRequiresRestart": "NÉCESSITE UN REDÉMARRAGE.",
     "dates": {
       "cancelledDate": {
         "description": "Activer cette option ajoute un horodatage ❌ YYYY-MM-DD à la fin d'une tâche marquée comme annulée.",
@@ -163,8 +161,7 @@
       "scheduledDate": {
         "extraFormat": {
           "description": {
-            "line1": "Un format de date supplémentaire que le module Tasks reconnaîtra comme Date planifiée lors de l'utilisation du nom de fichier comme Date planifiée pour les tâches sans date.",
-            "line2": "Documentation de la syntaxe"
+            "line1": "Un format de date supplémentaire que le module Tasks reconnaîtra comme Date planifiée lors de l'utilisation du nom de fichier comme Date planifiée pour les tâches sans date."
           },
           "name": "Format supplémentaire de Date planifiée à reconnaître dans les noms de fichier pour les tâches sans date",
           "placeholder": "exemple : MMM DD YYYY"
@@ -188,8 +185,7 @@
       "accessKeys": {
         "description": "Si les raccourcis clavier pour diverses fonctionnalités dans les boîtes de dialogue interfèrent avec des raccourcis système ou des technologies d'assistance importantes pour vous, vous pouvez les désactiver ici.",
         "name": "Autoriser les raccourcis claviers dans les boîtes de dialogue"
-      },
-      "heading": "Boîtes de dialogue"
+      }
     },
     "format": {
       "description": {
@@ -213,7 +209,6 @@
         "name": "Filtre global des tâches",
         "placeholder": "ex: #task ou TODO"
       },
-      "heading": "Filtre global",
       "removeFilter": {
         "description": "Activer cette option masquera l'expression choisie comme filtre global de la description d'une tâche lors de son affichage.",
         "name": "Masquer le filtre global dans les descriptions"
@@ -225,6 +220,21 @@
         "description": "Une requête automatiquement incluse au début de chaque bloc Tasks au sein du coffre. Pratique pour ajouter des filtres ou des réglages d'affichage par défaut.",
         "placeholder": "Par exemple...\npath does not include _templates/\nlimit 300\nshow urgency",
         "shortDescription": "Instructions automatiquement incluses au début de chaque bloc Tasks."
+      }
+    },
+    "postponeButton": {
+      "heading": "Bouton de report",
+      "postponeDateField": {
+        "description": "Quel champ de date le bouton de report (⏩) met à jour. Pour les options comportant plusieurs dates, la première date de la séquence présente sur la tâche sera modifiée.",
+        "name": "Champ de date du bouton de report",
+        "options": {
+          "due": "Toujours $t(taskFields.due)",
+          "due-scheduled-start": "$t(taskFields.due) → $t(taskFields.scheduled) → $t(taskFields.start)",
+          "scheduled": "Toujours $t(taskFields.scheduled)",
+          "scheduled-due-start": "$t(taskFields.scheduled) → $t(taskFields.due) → $t(taskFields.start)",
+          "start": "Toujours $t(taskFields.start)",
+          "start-scheduled-due": "$t(taskFields.start) → $t(taskFields.scheduled) → $t(taskFields.due)"
+        }
       }
     },
     "presets": {
@@ -254,7 +264,6 @@
       }
     },
     "searchResults": {
-      "heading": "Résultats de recherche",
       "taskCountLocation": {
         "description": "Afficher le nombre de tâches en haut ou en bas des résultats d'une requête.",
         "name": "Emplacement du nombre de tâches",
@@ -294,9 +303,6 @@
         "auraTheme": "Thème Aura",
         "borderTheme": "Thème Border",
         "buttons": {
-          "addCollection": {
-            "name": "{{themeName}}: Ajouter {{numberOfStatuses}} Statuts pris en charge"
-          },
           "importCollection": {
             "name": "{{themeName}} ({{numberOfStatuses}} statuts)"
           }
@@ -325,9 +331,6 @@
           "addAllUnknown": {
             "description": "Ajouter les symboles de statut présents dans votre coffre mais pas encore configurés ici.",
             "name": "Ajouter tous les types de Statuts inconnus."
-          },
-          "addNewStatus": {
-            "name": "Nouveau Statut"
           },
           "resetCustomStatuses": {
             "description": "Supprimer tous les statuts personnalisés et restaurer les valeurs par défaut.",
@@ -362,5 +365,10 @@
     "taskEntry": {
       "heading": "Saisie des tâches"
     }
+  },
+  "taskFields": {
+    "due": "Date d'échéance",
+    "scheduled": "Date planifiée",
+    "start": "Date de début"
   }
 }
