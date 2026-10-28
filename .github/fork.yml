@@ -1,0 +1,21 @@
+# Fork configuration, read by the fork skill and the fork-kit workflows.
+# Contract: https://github.com/codedpalette/fork-kit#forkyml
+schema: 1
+kit: v1
+kit-repo: codedpalette/fork-kit
+upstream: obsidian-tasks-group/obsidian-tasks            # owner/name
+mirror: main                # upstream's default branch (not kept in the fork)
+trunk: dev                  # our default branch: upstream plus our patches
+node: 22                    # setup-node version for verify and build
+sync:
+  source: release              # release | tag | tip
+  tag-prefix: ''    # text before the version in upstream's tags, e.g. release-
+  verify: yarn && yarn run build && yarn run lint && yarn run lint:markdown && yarn run test
+release:
+  suffix: patched              # version = <upstream base>-<suffix>.<N>
+  build: yarn run build
+  version-file: package.json  # only read for source: tip
+  stamp:                          # file -> jq filter, $version is defined
+    manifest.json: '.version = $version | .name = "Tasks (patched)" | .id = "obsidian-tasks-plugin-patched"'
+  assets: [main.js, manifest.json, styles.css]            # attached to the GitHub Release
+  commit: []            # force-added into a tag-only commit, for git-URL installs
