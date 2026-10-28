@@ -1,0 +1,42 @@
+name: Fork sync
+
+on:
+  schedule:
+    # Daily at 06:17 UTC. The sync only merges upstream releases, which are
+    # rare, so once a day is enough. Off the hour on purpose: GitHub's
+    # scheduler is busiest at minute 0, where runs start late or are dropped.
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+# One sync at a time: a slow verify must not overlap the next scheduled run.
+concurrency:
+  group: fork-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    uses: codedpalette/fork-kit/.github/workflows/sync.yml@v1
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    # By name, not "inherit": the kit gets only this secret. Its value comes
+    # from the fork-sync environment, inside the kit's push job.
+    secrets:
+      SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+
+  release:
+    needs: sync
+    if: needs.sync.outputs.merged == 'true'
+    uses: codedpalette/fork-kit/.github/workflows/release.yml@v1
+    permissions:
+      contents: read
+    # Builds the commit that the sync pushed, not the trunk as it was when
+    # this run started. One release at a time, shared with fork-release.yml.
+    concurrency:
+      group: fork-release
+      cancel-in-progress: false
+    secrets:
+      SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+    with:
+      ref: ${{ needs.sync.outputs.sha }}

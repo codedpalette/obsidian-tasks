@@ -1,0 +1,30 @@
+name: Fork release
+
+on:
+  push:
+    branches: [dev]
+    paths-ignore: ['.github/**', '**/*.md']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (default: computed from upstream)'
+        type: string
+        default: ''
+
+# One release at a time, shared with the release job of fork-sync.yml. Two
+# releases at once would compute the same version, and the second would fail.
+concurrency:
+  group: fork-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    uses: codedpalette/fork-kit/.github/workflows/release.yml@v1
+    permissions:
+      contents: read
+    # By name: the value comes from the fork-sync environment, in the kit's
+    # publish job, which creates the tag and the release.
+    secrets:
+      SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+    with:
+      version: ${{ inputs.version || '' }}
