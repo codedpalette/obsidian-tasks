@@ -1,23 +1,23 @@
 import moment from 'moment';
-import { Query } from '../../src/Query/Query';
-import { Status } from '../../src/Statuses/Status';
-import { Task } from '../../src/Task/Task';
-import { OnCompletion } from '../../src/Task/OnCompletion';
-import { TaskLocation } from '../../src/Task/TaskLocation';
-import { fieldCreators } from '../../src/Query/FilterParser';
-import type { Field } from '../../src/Query/Filter/Field';
-import type { BooleanField } from '../../src/Query/Filter/BooleanField';
-import { SearchInfo } from '../../src/Query/SearchInfo';
-import { FilterOrErrorMessage } from '../../src/Query/Filter/FilterOrErrorMessage';
-import { Explanation } from '../../src/Query/Explain/Explanation';
-import { Filter } from '../../src/Query/Filter/Filter';
-import { DescriptionField } from '../../src/Query/Filter/DescriptionField';
+import { Query } from 'Query/Query';
+import { Status } from 'Statuses/Status';
+import { Task } from 'Task/Task';
+import { OnCompletion } from 'Task/OnCompletion';
+import { TaskLocation } from 'Task/TaskLocation';
+import { fieldCreators } from 'Query/FilterParser';
+import type { Field } from 'Query/Filter/Field';
+import type { BooleanField } from 'Query/Filter/BooleanField';
+import { SearchInfo } from 'Query/SearchInfo';
+import { FilterOrErrorMessage } from 'Query/Filter/FilterOrErrorMessage';
+import { Explanation } from 'Query/Explain/Explanation';
+import { Filter } from 'Query/Filter/Filter';
+import { DescriptionField } from 'Query/Filter/DescriptionField';
+import { Priority } from 'Task/Priority';
+import { TaskLayoutComponent } from 'Layout/TaskLayoutOptions';
 import { createTasksFromMarkdown, fromLine } from '../TestingTools/TestHelpers';
 import type { FilteringCase } from '../TestingTools/FilterTestHelpers';
 import { shouldSupportFiltering } from '../TestingTools/FilterTestHelpers';
 import { TaskBuilder } from '../TestingTools/TaskBuilder';
-import { Priority } from '../../src/Task/Priority';
-import { TaskLayoutComponent } from '../../src/Layout/TaskLayoutOptions';
 import { getTasksFileFromMockData } from '../TestingTools/MockDataHelpers';
 import { createTestTasksFile } from '../TestingTools/TasksFileHelpers';
 
@@ -389,12 +389,12 @@ description includes \
             return filters.filter((instruction) => field.createSorterFromLine(instruction) !== null);
         }
 
-        describe.each(namedFields)('has sufficient sample "sort by" lines for field "%s"', ({ field }) => {
-            if (!field.supportsSorting()) {
-                it.skip('does not support sorting', () => {});
-                return;
-            }
-
+        describe.each(
+            namedFields.filter((namedField) => {
+                // Braces are intentional to make it clear that a subset of namedFields is being used.
+                return namedField.field.supportsSorting();
+            }),
+        )('has sufficient sample "sort by" lines for field "%s"', ({ field }) => {
             const matchingLines = linesMatchingField(field);
 
             it('has at least one test for normal sorting', () => {
@@ -472,12 +472,12 @@ description includes \
             return filters.filter((instruction) => field.createGrouperFromLine(instruction) !== null);
         }
 
-        describe.each(namedFields)('has sufficient sample "group by" lines for field "%s"', ({ field }) => {
-            if (!field.supportsGrouping()) {
-                it.skip('does not support grouping', () => {});
-                return;
-            }
-
+        describe.each(
+            namedFields.filter((namedField) => {
+                // Braces are intentional to make it clear that a subset of namedFields is being used.
+                return namedField.field.supportsGrouping();
+            }),
+        )('has sufficient sample "group by" lines for field "%s"', ({ field }) => {
             const matchingLines = linesMatchingField(field);
 
             it('has at least one test for normal grouping', () => {

@@ -1,9 +1,9 @@
 import moment from 'moment';
-import { getSettings, resetSettings, updateSettings } from '../../../src/Config/Settings';
-import { Query } from '../../../src/Query/Query';
-import type { Statement } from '../../../src/Query/Statement';
-import { type PresetsMap, defaultPresets } from '../../../src/Query/Presets/Presets';
-import { EnableJsInTasksQueries } from '../../../src/Config/EnableJsInTasksQueries';
+import { getSettings, resetSettings, updateSettings } from 'Config/Settings';
+import { Query } from 'Query/Query';
+import type { Statement } from 'Query/Statement';
+import { type PresetsMap, defaultPresets } from 'Query/Presets/Presets';
+import { EnableJsInTasksQueries } from 'Config/EnableJsInTasksQueries';
 import { expectQueryErrorToMentionDisabledJavaScript } from '../../Scripting/ScriptingTestHelpers';
 import { createTestTasksFile } from '../../TestingTools/TasksFileHelpers';
 
@@ -453,6 +453,16 @@ describe('include - error messages', () => {
                   include3            : (filename includes File 1) AND ( (heading includes...
                   include4_longer_name: (filename includes File 1) AND \\...
                 Problem line: "preset not_existent""
+            `);
+        });
+
+        it('should list candidate preset names if there is a case-insensitive partial match', () => {
+            const query = createQuery('preset name', includes);
+            expect(query.error).toMatchInlineSnapshot(`
+                "Cannot find preset "name" in the Tasks settings
+                Did you mean:
+                  include4_longer_name: (filename includes File 1) AND \\...
+                Problem line: "preset name""
             `);
         });
     });

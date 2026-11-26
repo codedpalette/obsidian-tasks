@@ -1,28 +1,22 @@
 import moment from 'moment';
-import { Notice } from 'obsidian';
 
-import { TaskBuilder } from '../TestingTools/TaskBuilder';
-import { Priority } from '../../src/Task/Priority';
+import { Priority } from 'Task/Priority';
 import {
     QuickSearchTasksModal,
     openTaskAtSourceLocation,
     taskSearchMetadataText,
     taskSearchSuggestionText,
-} from '../../src/ui/QuickSearchTasksModal';
-import { GlobalFilter } from '../../src/Config/GlobalFilter';
-import { Status } from '../../src/Statuses/Status';
+} from 'ui/QuickSearchTasksModal';
+import { GlobalFilter } from 'Config/GlobalFilter';
+import { Status } from 'Statuses/Status';
+import { getTaskLineAndFile } from 'Obsidian/File';
 import { fromMarkdown } from '../TestingTools/TestHelpers';
-import { getTaskLineAndFile } from '../../src/Obsidian/File';
+import { TaskBuilder } from '../TestingTools/TaskBuilder';
+import { noticeMessages } from '../__mocks__/obsidian';
 
-vi.mock('obsidian', async () => ({
-    ...(await vi.importActual('../__mocks__/obsidian')),
-    Notice: vi.fn(),
-}));
 vi.mock('../../src/Obsidian/File', () => ({ getTaskLineAndFile: vi.fn() }));
 
 window.moment = moment;
-
-const MockedNotice = vi.mocked(Notice);
 
 // This test data is duplicated from QuickSearchTasks.test.ts,
 // because we prefer reliability of tests over DRY in test code.
@@ -166,12 +160,9 @@ describe('Opening a selected task', () => {
         await openTaskAtSourceLocation(writeReleaseNotes, app);
 
         expect(app.workspace.getLeaf).not.toHaveBeenCalled();
-        expect(warning).toHaveBeenCalledWith(
-            'Tasks: Could not open the selected task.\nIt may have changed. Try searching again.',
-        );
-        expect(MockedNotice).toHaveBeenCalledWith(
-            'Tasks: Could not open the selected task.\nIt may have changed. Try searching again.',
-        );
+        const expectedMessage = 'Tasks: Could not open the selected task.\nIt may have changed. Try searching again.';
+        expect(warning).toHaveBeenCalledWith(expectedMessage);
+        expect(noticeMessages).toEqual([expectedMessage]);
         warning.mockRestore();
     });
 

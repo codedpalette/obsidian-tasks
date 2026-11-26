@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 import { Modal } from 'obsidian';
 import { mount, unmount } from 'svelte';
-import ModalOptionsEditor from '../ui/ModalOptionsEditor.svelte';
+import ModalOptionsEditor from 'ui/ModalOptionsEditor.svelte';
 
 /**
  * Constructor parameter for {@link OptionsModal}.
@@ -26,7 +26,7 @@ export class OptionsModal extends Modal {
     }
 
     public onOpen(): void {
-        this.titleEl.setText('Hide unused fields');
+        this.titleEl.setText('Hide and reorder fields');
 
         this.modalEl.addClass('tasks-options-modal-container');
 

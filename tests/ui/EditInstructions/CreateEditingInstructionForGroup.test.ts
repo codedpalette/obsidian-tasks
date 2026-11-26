@@ -1,12 +1,12 @@
 import moment from 'moment';
 import { verify } from '@approval-tests/approvals/lib/Providers/Vitest/VitestApprovals';
-import { TaskBuilder } from '../../TestingTools/TaskBuilder';
-import { Priority } from '../../../src/Task/Priority';
+import { Priority } from 'Task/Priority';
 import {
     allViewInstructionsSupportingEditing,
     createEditingInstructionForGroup,
-} from '../../../src/ui/EditInstructions/CreateEditingInstructionForGroup';
-import { Query } from '../../../src/Query/Query';
+} from 'ui/EditInstructions/CreateEditingInstructionForGroup';
+import { Query } from 'Query/Query';
+import { TaskBuilder } from '../../TestingTools/TaskBuilder';
 
 window.moment = moment;
 
@@ -16,7 +16,7 @@ describe('CreateEditingInstructionForGroup', () => {
         const instruction = createEditingInstructionForGroup('priority', task);
 
         expect(instruction).not.toBeNull();
-        expect(instruction?.instructionDisplayName()).toBe('Priority: Medium');
+        expect(instruction?.instructionDisplayName()).toBe('Change Priority to: Medium');
     });
 
     it('should create an instruction for due date', () => {

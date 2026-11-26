@@ -1,11 +1,12 @@
 import moment from 'moment';
-import { RecurrenceBuilder } from '../TestingTools/RecurrenceBuilder';
+import { DATAVIEW_SYMBOLS, DataviewTaskSerializer } from 'TaskSerializer/DataviewTaskSerializer';
+import { ALL_DATE_FIELDS } from 'DateTime/DateFieldTypes';
+import type { Task } from 'Task/Task';
+import type { TaskDetails } from 'TaskSerializer';
+import { OnCompletion } from 'Task/OnCompletion';
+import { Priority } from 'Task/Priority';
 import { TaskBuilder } from '../TestingTools/TaskBuilder';
-import { DATAVIEW_SYMBOLS, DataviewTaskSerializer } from '../../src/TaskSerializer/DataviewTaskSerializer';
-import type { Task } from '../../src/Task/Task';
-import type { TaskDetails } from '../../src/TaskSerializer';
-import { OnCompletion } from '../../src/Task/OnCompletion';
-import { Priority } from '../../src/Task/Priority';
+import { RecurrenceBuilder } from '../TestingTools/RecurrenceBuilder';
 
 window.moment = moment;
 
@@ -16,7 +17,7 @@ describe('DataviewTaskSerializer', () => {
     const serialize = taskSerializer.serialize.bind(taskSerializer);
     const deserialize = taskSerializer.deserialize.bind(taskSerializer);
 
-    const dateFields = ['startDate', 'dueDate', 'doneDate', 'createdDate', 'scheduledDate', 'cancelledDate'] as const;
+    const dateFields = ALL_DATE_FIELDS;
 
     describe('deserialize', () => {
         it('should parse an empty string', () => {

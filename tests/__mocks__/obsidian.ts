@@ -81,11 +81,29 @@ export class Menu {
     }
 }
 
+// Records the messages of the notices shown by a test so that tests can check what the user was told.
+// This is emptied before every test, in `tests/vitest.setup.ts`.
+export const noticeMessages: (string | DocumentFragment)[] = [];
+
+export function resetNoticeMessages(): void {
+    noticeMessages.length = 0;
+}
+
+/**
+ * If you want to test uses of Notice:
+ * @example
+ *  import { noticeMessages } from '../__mocks__/obsidian';
+ *
+ *  expect(noticeMessages).toEqual(['placeholder Not A Task message']);
+ *  expect(noticeMessages).toEqual([]);
+ */
 export class Notice {
     /**
      * @public
      */
-    constructor(_message: string | DocumentFragment, _timeout?: number) {}
+    constructor(message: string | DocumentFragment, _timeout?: number) {
+        noticeMessages.push(message);
+    }
 
     /**
      * Change the message of this notice.
@@ -365,6 +383,15 @@ export class Component {
     public unload(): void {}
 }
 
+export class MarkdownRenderChild extends Component {
+    public containerEl: HTMLElement;
+
+    constructor(containerEl?: HTMLElement) {
+        super();
+        this.containerEl = containerEl ?? ({} as HTMLElement);
+    }
+}
+
 export class MarkdownRenderer {
     public static render(_app: App, markdown: string, el: HTMLElement): Promise<void> {
         el.textContent = markdown;
@@ -383,6 +410,19 @@ export abstract class SuggestModal<T> extends Modal {
     public abstract renderSuggestion(value: T, el: HTMLElement): void;
     public abstract onChooseSuggestion(item: T, evt: MouseEvent | KeyboardEvent): void;
 }
+
+// Minimal EditorSuggest mock: just enough to construct EditorSuggestor.
+export abstract class EditorSuggest<_T> {
+    public context: unknown = null;
+
+    constructor(public readonly app: App) {}
+
+    public close(): void {}
+}
+
+export class MarkdownView {}
+
+export const editorInfoField = {};
 
 // Minimal ButtonComponent mock: only the methods currently needed by modal-building code.
 export class ButtonComponent {

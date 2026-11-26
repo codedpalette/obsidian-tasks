@@ -1,12 +1,13 @@
 import type { App, Editor, MarkdownFileInfo, MarkdownView, TFile, View } from 'obsidian';
-import type TasksPlugin from '../main';
-import { StatusRegistry } from '../Statuses/StatusRegistry';
-import { QuickSearchTasksModal } from '../ui/QuickSearchTasksModal';
-import { createOrEdit } from './CreateOrEdit';
+import type TasksPlugin from 'main';
+import { StatusRegistry } from 'Statuses/StatusRegistry';
+import { QuickSearchTasksModal } from 'ui/QuickSearchTasksModal';
+import { createOrEdit } from 'Commands/CreateOrEdit';
 
-import { toggleDone } from './ToggleDone';
-import { ensureQueryFileDefaultsInFrontmatter } from './AddQueryFileDefaultsProperties';
-import { createSetStatusCommands } from './ChangeStatusCommands';
+import { toggleDone } from 'Commands/ToggleDone';
+import { ensureQueryFileDefaultsInFrontmatter } from 'Commands/AddQueryFileDefaultsProperties';
+import { createSetStatusCommands } from 'Commands/ChangeStatusCommands';
+import { createSetPriorityCommands } from 'Commands/ChangePriorityCommands';
 
 export const ToggleTaskDoneCommandName = 'Toggle task done';
 
@@ -78,9 +79,9 @@ export class Commands {
 
         // Register set-status commands for each registered status
         const setStatusCommands = createSetStatusCommands(StatusRegistry.getInstance());
-        for (const command of setStatusCommands) {
-            plugin.addCommand(command);
-        }
+        setStatusCommands.forEach((command) => plugin.addCommand(command));
+
+        createSetPriorityCommands().forEach((command) => plugin.addCommand(command));
     }
 
     async ensureQueryFileDefaultsFrontmatter(file: TFile): Promise<void> {

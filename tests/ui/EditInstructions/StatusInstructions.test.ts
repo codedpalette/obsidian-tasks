@@ -1,11 +1,11 @@
 import moment from 'moment/moment';
 
-import { Status } from '../../../src/Statuses/Status';
+import { Status } from 'Statuses/Status';
+import { SetStatus, allStatusInstructions } from 'ui/EditInstructions/StatusInstructions';
+import { StatusRegistry } from 'Statuses/StatusRegistry';
 import { TaskBuilder } from '../../TestingTools/TaskBuilder';
-import { SetStatus, allStatusInstructions } from '../../../src/ui/EditInstructions/StatusInstructions';
 import * as StatusExamples from '../../TestingTools/StatusExamples';
 import { constructStatuses } from '../../TestingTools/StatusesTestHelpers';
-import { StatusRegistry } from '../../../src/Statuses/StatusRegistry';
 
 window.moment = moment;
 
@@ -58,6 +58,15 @@ describe('SetStatus', () => {
         expect(newTasks.length).toEqual(1);
         // Expect it is the same object
         expect(Object.is(newTasks[0], todoTask)).toBe(true);
+    });
+
+    it('should end commandId() with status symbol', () => {
+        expect(new SetStatus(Status.DONE).commandId()).toBe('set-status-symbol-to-x');
+        expect(new SetStatus(Status.CANCELLED).commandId()).toBe('set-status-symbol-to--');
+    });
+
+    it('should end commandId() with "space" as special case for [ ]', () => {
+        expect(new SetStatus(Status.TODO).commandId()).toBe('set-status-symbol-to-space');
     });
 });
 
